@@ -1,23 +1,4 @@
 # Salamly Referral System
-
-## System Overview
-
-The Salamly Referral System is designed to track and reward inviters who successfully bring new users to the Salamly application. This document provides a comprehensive explanation of the system's workflow, from inviter creation to payment
-processing.
-
-## Table of Contents
-
-1. [System Architecture](#system-architecture)
-2. [Inviter Management](#inviter-management)
-3. [Referral Link Generation and Distribution](#referral-link-generation-and-distribution)
-4. [User Registration with Referral Code](#user-registration-with-referral-code)
-5. [Post Tracking and Earnings Calculation](#post-tracking-and-earnings-calculation)
-6. [Dashboard and Reporting](#dashboard-and-reporting)
-7. [Administration and Payment](#administration-and-payment)
-8. [API Integration for Mobile Applications](#api-integration-for-mobile-applications)
-
-## System Architecture
-
 ### Database Structure
 
 The system uses Firebase Firestore with the following collections:
@@ -25,7 +6,7 @@ The system uses Firebase Firestore with the following collections:
 1. **`inviters` Collection**: Stores inviter information
 
    - `username`: Unique username for login
-   - `password`: Encrypted password (using bcrypt)
+   - `passwordHash`: Encrypted password (using bcrypt)
    - `fullName`: Inviter's full name
    - `email`: Inviter's email address
    - `referralCode`: Unique referral code
@@ -41,7 +22,7 @@ The system uses Firebase Firestore with the following collections:
    - `loginMethod`: Authentication method used
    - `hasPosted`: Whether the user has made a post
    - `earned`: Amount earned from this user (0 or 0.02)
-   - `registeredAt`: Registration timestamp
+   - `timestamp`: Registration timestamp
 
 3. **`earnings` Subcollection**: Stores monthly earnings data
    - `monthYear`: Month and year (format: "MM-YYYY")
@@ -125,7 +106,7 @@ The system uses Firebase Firestore with the following collections:
 ### Referral Code Validation and Tracking
 
 1. API receives a request with `referralCode` and `userData` (containing at minimum `uid` and `username`)
-2. API calls `ReferralService.trackUserRegistration()`
+2. API calls `trackUserRegistration()`
 3. System validates the referral code with `InviterModel.getByReferralCode()`
 4. If the code is valid and the inviter is active, system creates tracking data:
    ```javascript
@@ -138,7 +119,7 @@ The system uses Firebase Firestore with the following collections:
      earned: 0,
    };
    ```
-5. System saves tracking data in the inviter's `userTracking` subcollection using `InviterModel.addUserTracking()`
+5. System saves tracking data in the inviter's `userTracking` subcollection using `addUserTracking()`
 6. API returns a response with the tracking data
 
 ## Post Tracking and Earnings Calculation
@@ -152,8 +133,8 @@ The system uses Firebase Firestore with the following collections:
 ### Post Status Validation and Update
 
 1. API receives a request with `userId`
-2. API calls `ReferralService.checkAndUpdateUserPostStatus()`
-3. System finds all inviters tracking this user with `InviterModel.getAllInvitersTrackingData()`
+2. API calls `checkAndUpdateUserPostStatus()`
+3. System finds all inviters tracking this user with `getAllInvitersTrackingData()`
 4. System checks if the user exists in any inviter's tracking data:
    - If not found, API returns: `{ success: true, tracked: false, message: 'User not registered with any referral code, no action needed' }`
    - If found but already updated, API returns: `{ success: true, tracked: true, updated: false, message: 'User already marked as posted, no update needed' }`
@@ -161,11 +142,11 @@ The system uses Firebase Firestore with the following collections:
 ### Status Update and Earnings Calculation
 
 1. If the user is found and has not been updated before, the system:
-   1. Updates the `hasPosted` status to `true` using `InviterModel.updateUserPosted()`
+   1. Updates the `hasPosted` status to `true` using `updateUserPosted()`
    2. Calculates the current month and year: `monthYear = "MM-YYYY"`
-   3. Retrieves the inviter's earnings data with `InviterModel.getEarningsData()`
+   3. Retrieves the inviter's earnings data with `getEarningsData()`
    4. Adds 1 to `userCount` and 0.02 to `totalEarnings` for the current month
-   5. Updates the monthly earnings with `InviterModel.updateMonthlyEarnings()`
+   5. Updates the monthly earnings with `updateMonthlyEarnings()`
    6. Returns details of the updated inviters
 
 ## Dashboard and Reporting
@@ -173,7 +154,7 @@ The system uses Firebase Firestore with the following collections:
 ### Dashboard Statistics
 
 1. Inviter logs into the dashboard
-2. System calls `DashboardService.getDashboardStats()` to retrieve statistics:
+2. System calls `getDashboardStats()` to retrieve statistics:
    - New users today and this month
    - Earnings today and this month
    - Total registered users
@@ -212,9 +193,8 @@ The system uses Firebase Firestore with the following collections:
 
 ### Inviter Management
 
-1. Admin can view, add, edit, and deactivate inviters
+1. Admin can view, add, and deactivate inviters
 2. Admin can view inviter details:
-   - Profile data
    - Tracking statistics
    - Earnings reports
 
@@ -225,62 +205,3 @@ The system uses Firebase Firestore with the following collections:
 3. Admin updates payment status through the dashboard
 4. System updates the `isPaid` status and `paidAt` timestamp
 
-## API Integration for Mobile Applications
-
-### Key Integration Points
-
-1. **Referral Code Validation**
-
-   - Endpoint: `GET /api/referral/validate`
-   - Used to validate referral codes before user registration
-
-2. **Registration Tracking**
-
-   - Endpoint: `POST /api/referral/track-registration`
-   - Called after successful user registration with a referral code
-
-3. **Post Tracking**
-   - Endpoint: `POST /api/referral/track-post`
-   - Called when a user makes their first post
-
-### Integration Flow
-
-1. **Validate Referral Code:**
-
-   - Before completing user registration, validate the referral code
-   - If valid, proceed with registration
-   - If invalid, inform the user and allow them to continue without a referral code
-
-2. **Complete Registration:**
-
-   - Register the user in authentication system
-   - Create a user document in Firestore
-
-3. **Track Registration:**
-
-   - After successful registration, track the registration with the referral code
-   - This links the new user to the inviter
-
-4. **Track First Post:**
-   - When the user makes their first post, update the tracking status
-   - This updates the inviter's earnings
-
----
-
-## Security Considerations
-
-- All passwords are encrypted using bcrypt
-- JWT tokens are used for authentication
-
----
-
-## Testing
-
-The system includes test pages for each API endpoint:
-
-- Create Inviter: `/test-inviter-api`
-- User Registration: `/test-register-api`
-- Post Tracking: `/test-post-api`
-- Payment Status: `/test-payment-api`
-
-These test pages can be used to verify the functionality of each component of the referral system.

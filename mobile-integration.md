@@ -178,7 +178,7 @@ Mobile applications integrate with the referral system through two main APIs:
    example: https://apps.apple.com/us/app/salamly-ramadan-discover/id1612064624?referral=testuser5
    ```
 
-2. Store the referral code in local storage (SharedPreferences for Android, UserDefaults for iOS, or any cross-platform storage solution)
+2. Store the referral code in local storage
 
 #### 2.2 Tracking User Registration
 

@@ -1,232 +1,200 @@
-# Salamly Referral System - Mobile Integration API Documentation
+# Mobile App Integration
 
-## 1. Overview
+This documentation explains how to integrate the referral system with mobile applications.
 
-- **Base URL:** `https://dev.d1dxbobz3kirt3.amplifyapp.com/api`
-- **Content Type:** `application/json`
+### 1. APIs for Mobile Applications
 
-This API documentation provides details on how to integrate mobile applications with the Salamly Referral System. The system allows users to register using referral codes and tracks user activities for referral rewards.
+Mobile applications integrate with the referral system through two main APIs:
 
----
+#### 1.1 Track Registration API
 
-## 2. Endpoints
+**Endpoint:** `/api/referral/track-registration`
 
-### GET `/referral/validate`
-
-> Validate a referral code before user registration
-
-**Request:**
-
-- **Method:** `GET`
-- **URL:** `/referral/validate`
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Referral code is valid",
-  "inviterData": {
-    "id": "inviter123",
-    "username": "inviter_username"
-  }
-}
-```
-
-**Error Responses:**
-
-```json
-{
-  "success": false,
-  "message": "Referral code is required"
-}
-```
-
-```json
-{
-  "success": false,
-  "message": "Referral code not found"
-}
-```
-
-```json
-{
-  "success": false,
-  "message": "Referral code is inactive"
-}
-```
-
----
-
-### POST `/referral/track-registration`
-
-> Track a new user registration with a referral code
-
-**Request:**
-
-- **Method:** `POST`
-- **URL:** `/referral/track-registration`
-- **Headers:** `Content-Type: application/json`
+**Method:** POST
 
 **Request Body:**
-
 ```json
 {
-  "referralCode": "ABC123",
+  "referralCode": "string", // Referral code (required)
   "userData": {
-    "uid": "user123",
-    "username": "new_user",
-    "platform": "android",
-    "loginMethod": "email"
+    "uid": "string", // Unique user ID (required)
+    "username": "string", // Username
+    "email": "string", // User email (optional)
+    "platform": "string", // User platform (android/ios)
+    "loginMethod": "string" // Login method (google/apple/email)
   }
 }
 ```
 
-**Response:**
+**Responses:**
 
+- **200 OK**
 ```json
 {
   "success": true,
-  "message": "User registration tracked successfully",
+  "statusCode": 200,
+  "message": "User registration with referral code tracked successfully",
   "data": {
-    "trackingId": "tracking123",
-    "inviterId": "inviter123",
-    "userId": "user123",
-    "username": "new_user",
-    "platform": "android",
-    "loginMethod": "email",
+    "userId": "string",
+    "username": "string",
+    "inviterId": "string",
+    "inviterUsername": "string",
+    "referralCode": "string",
+    "platform": "string",
+    "loginMethod": "string",
     "hasPosted": false,
-    "earned": 0
-  }
+    "earned": 0,
+    "createdAt": "string"
+  },
+  "timestamp": "string"
 }
 ```
 
-**Error Responses:**
-
+- **400 Bad Request** - Invalid referral code
 ```json
 {
   "success": false,
-  "message": "Referral code and user data are required"
+  "statusCode": 400,
+  "message": "Failed to track user registration",
+  "errors": {
+    "code": "REFERRAL_CODE_INVALID",
+    "details": {
+      "referralCode": "string",
+      "message": "The referral code does not exist"
+    }
+  },
+  "timestamp": "string"
 }
 ```
 
+- **409 Conflict** - User already tracked with a referral code
 ```json
 {
   "success": false,
-  "message": "Invalid referral code"
+  "statusCode": 409,
+  "message": "Failed to track user registration",
+  "errors": {
+    "code": "REFERRAL_USER_ALREADY_TRACKED",
+    "details": {
+      "userId": "string",
+      "inviterId": "string",
+      "message": "This user has already been tracked with a referral code"
+    }
+  },
+  "timestamp": "string"
 }
 ```
 
----
+#### 1.2 Track Post API
 
-### POST `/referral/track-post`
+**Endpoint:** `/api/referral/track-post`
 
-> Track when a user makes their first post
-
-**Request:**
-
-- **Method:** `POST`
-- **URL:** `/referral/track-post`
-- **Headers:** `Content-Type: application/json`
+**Method:** POST
 
 **Request Body:**
-
 ```json
 {
-  "userId": "user123"
+  "userId": "string" // Unique user ID (required)
 }
 ```
 
-**Response:**
+**Responses:**
 
+- **200 OK** - Successfully tracked post
 ```json
 {
   "success": true,
-  "message": "User post status updated successfully",
+  "statusCode": 200,
+  "message": "User post tracked successfully",
   "data": {
-    "success": true,
+    "userId": "string",
     "tracked": true,
     "updated": true,
-    "updatedInviters": [
-      {
-        "inviterId": "inviter123",
-        "trackingId": "tracking123",
-        "earned": 0.02
-      }
-    ],
-    "message": "User post status updated successfully"
-  }
+    "hasPosted": true,
+    "postedAt": "string"
+  },
+  "timestamp": "string"
 }
 ```
 
-**Alternative Responses:**
-
+- **200 OK** - User has already posted
 ```json
 {
   "success": true,
-  "message": "User not tracked by any inviter",
+  "statusCode": 200,
+  "message": "User already marked as posted, no update needed",
   "data": {
-    "success": true,
-    "tracked": false,
-    "message": "User not registered with any referral code, no action needed"
-  }
-}
-```
-
-```json
-{
-  "success": true,
-  "message": "Post tracking processed successfully",
-  "data": {
-    "success": true,
+    "userId": "string",
     "tracked": true,
     "updated": false,
-    "message": "User already marked as posted, no update needed"
-  }
+    "hasPosted": true,
+    "inviterId": "string",
+    "referralCode": "string",
+    "postedAt": "string"
+  },
+  "timestamp": "string"
 }
 ```
 
-**Error Response:**
+- **200 OK** - User not registered with any referral code
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "User not registered with any referral code, no action needed",
+  "data": {
+    "userId": "string",
+    "tracked": false,
+    "updated": false
+  },
+  "timestamp": "string"
+}
+```
 
+- **404 Not Found** - Tracking record not found
 ```json
 {
   "success": false,
-  "message": "User ID is required"
+  "statusCode": 404,
+  "message": "No tracking record found to update",
+  "errors": {
+    "code": "REFERRAL_TRACKING_NOT_FOUND",
+    "details": {
+      "userId": "string",
+      "message": "No tracking record found for this user"
+    }
+  },
+  "timestamp": "string"
 }
 ```
 
----
+### 2. Mobile Integration Flow
 
-## 3. Integration Flow
+#### 2.1 Capturing Referral Code
 
-### User Registration with Referral Code
+1. Implement deep linking in your mobile app to capture the `referral` parameter from the URL
+   ```
+   example: https://play.google.com/store/apps/details?id=com.salamgram.salamgram&referral=testuser5
+   example: https://apps.apple.com/us/app/salamly-ramadan-discover/id1612064624?referral=testuser5
+   ```
 
-1. **Validate Referral Code:**
+2. Store the referral code in local storage (SharedPreferences for Android, UserDefaults for iOS, or any cross-platform storage solution)
 
-   - Before completing user registration, validate the referral code using the `/referral/validate` endpoint
-   - If the code is valid, proceed with registration
-   - If invalid, inform the user and allow them to continue without a referral code
+#### 2.2 Tracking User Registration
 
-2. **Complete Registration:**
+1. When a user successfully registers or logs in, retrieve the referral code from local storage
+2. Send a POST request to the track-registration API with the following data:
+   - Referral code retrieved from storage
+   - User data including unique ID, username, platform (iOS/Android), and login method
+3. Process the API response:
+   - If successful (200 OK), store relevant information about the referral
+   - If error occurs (400, 409), handle the error appropriately
 
-   - Register the user in your authentication system
-   - Create a user document in Firestore with required user information
 
-3. **Track Registration:**
+#### 2.3 Tracking User Posts
 
-   - After successful registration, call the `/referral/track-registration` endpoint
-   - This will link the new user to the inviter and prepare for reward tracking
-
-4. **Track First Post:**
-   - When the user makes their first post in the app, call the `/referral/track-post` endpoint
-   - This will update the inviter's earnings and complete the referral process
-
----
-
-## 4. Testing
-
-You can test these APIs using the following test pages:
-
-- Validate Referral Code: `https://dev.d1dxbobz3kirt3.amplifyapp.com/test-register-api`
-- Track Registration: `https://dev.d1dxbobz3kirt3.amplifyapp.com/test-register-api`
-- Track Post: `https://dev.d1dxbobz3kirt3.amplifyapp.com/test-post-api`
+1. When a user creates a post for the first time, send a POST request to the track-post API with the user's unique ID
+2. Process the API response:
+   - If successful with updated=true, the user's post has been tracked and the referrer will receive credit
+   - If successful with updated=false, the user has already been marked as having posted
+   - If the user was not registered with a referral code, no action is needed
